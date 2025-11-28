@@ -70,8 +70,33 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        
-        
+        for i in range(self.lookback + 1, len(self.price)):
+            assets = self.price.columns[self.price.columns != self.exclude]
+
+            # Rolling window returns
+            window = self.returns[assets].iloc[i - self.lookback : i]
+
+            # Volatility
+            sigma = window.std()
+
+            # Momentum
+            mom = self.price[assets].pct_change(self.lookback).iloc[i]
+            mom[mom < 0] = 0  # Only positive momentum
+
+            # Combine momentum × inverse volatility
+            raw = (mom / sigma).replace([np.inf, -np.inf], 0).fillna(0)
+
+            if raw.sum() == 0:
+                # fallback: equal weight
+                weights = np.ones(len(assets)) / len(assets)
+            else:
+                weights = raw / raw.sum()
+                
+            self.portfolio_weights.loc[self.price.index[i], assets] = weights
+
+        # SPY must be zero
+        self.portfolio_weights[self.exclude] = 0
+
         """
         TODO: Complete Task 4 Above
         """

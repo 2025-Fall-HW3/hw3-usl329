@@ -62,7 +62,16 @@ class EqualWeightPortfolio:
         """
         TODO: Complete Task 1 Below
         """
+        # number of assets excluding the benchmark (e.g., SPY)
+        n = len(assets)
 
+        # equal weight for each asset
+        w = 1.0 / n
+        # assign weights to each date
+        for col in assets:
+            self.portfolio_weights[col] = w
+        # all excluded asset (e.g., SPY) weight = 0
+        self.portfolio_weights[self.exclude] = 0
         """
         TODO: Complete Task 1 Above
         """
@@ -113,9 +122,13 @@ class RiskParityPortfolio:
         """
         TODO: Complete Task 2 Below
         """
-
-
-
+        for i in range(self.lookback + 1, len(df)):
+            R_n = df_returns.copy()[assets].iloc[i - self.lookback : i]
+            sigma = R_n.std()
+            inv_vol = 1.0 / sigma
+            weights = inv_vol / inv_vol.sum()
+            self.portfolio_weights.loc[df.index[i], assets] = weights.values
+        self.portfolio_weights[self.exclude] = 0
         """
         TODO: Complete Task 2 Above
         """
@@ -187,12 +200,15 @@ class MeanVariancePortfolio:
                 """
                 TODO: Complete Task 3 Below
                 """
+                # Decision variable
+                w = model.addMVar(n, lb=0, ub=1, name="w")
 
-                # Sample Code: Initialize Decision w and the Objective
-                # NOTE: You can modify the following code
-                w = model.addMVar(n, name="w", ub=1)
-                model.setObjective(w.sum(), gp.GRB.MAXIMIZE)
+                # Objective: maximize μᵀw - γ/2 * wᵀΣw
+                quad_term = (w @ Sigma @ w)
+                model.setObjective(mu @ w - gamma * 0.5 * quad_term, gp.GRB.MAXIMIZE)
 
+                # Constraint: weights sum = 1
+                model.addConstr(w.sum() == 1, name="weight_sum")
                 """
                 TODO: Complete Task 3 Above
                 """
@@ -275,7 +291,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
     judge = AssignmentJudge()
     
     # All grading logic is protected in grader.py
